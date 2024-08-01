@@ -8,6 +8,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import logging
 
+
 # Configure logging
 logging.basicConfig(filename='home_security.log', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
 
@@ -19,8 +20,12 @@ CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
            "sofa", "train", "tvmonitor"]
 
 def send_email(image_path):
-    fromaddr = "nonloso1005@gmail.com"
-    toaddr = "axyjytube@gmail.com"
+    port = 587
+    smtp_server = "live.smtp.mailtrap.io"
+    login = "api"
+    password = "9ed04dc0442fa97f4929b59572b6d9e4"
+    fromaddr = "mailtrap@demomailtrap.com"
+    toaddr = "andrea.coppari@proton.me"
     msg = MIMEMultipart()
     msg['From'] = fromaddr
     msg['To'] = toaddr
@@ -36,15 +41,15 @@ def send_email(image_path):
     part.add_header('Content-Disposition', "attachment; filename= %s" % image_path)
     msg.attach(part)
 
-    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server = smtplib.SMTP(smtp_server, port)
     server.starttls()
-    server.login(fromaddr, "Idk_1005")
+    server.login(login, password)
     text = msg.as_string()
     server.sendmail(fromaddr, toaddr, text)
     server.quit()
 
 # Set up the webcam
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # Initialize the timer for the email alert
 last_email_time = 0
@@ -71,7 +76,7 @@ while True:
     for i in range(detections.shape[2]):
         confidence = detections[0, 0, i, 2]
 
-        if confidence > 0.2:
+        if confidence > 0.5:
             idx = int(detections[0, 0, i, 1])
             if CLASSES[idx] == "person":
                 count += 1
@@ -84,11 +89,11 @@ while True:
     cv2.imshow("Frame", frame)
 
     # Log the detected count
-    logging.info(f'People count: {count}')
+    # logging.info(f'People count: {count}')
 
     current_time = time.time()
     # If more than one person is detected, save a snapshot, send an email, and break
-    if count > 1 and (current_time - last_email_time > email_timeout):
+    if count >= 1 and ((current_time - last_email_time > email_timeout) or count >= 2):
         snapshot_path = 'alert_snapshot.jpg'
         cv2.imwrite(snapshot_path, frame)
         logging.warning("Multiple people detected. Saving snapshot and sending email.")
